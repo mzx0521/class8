@@ -4,6 +4,7 @@ import Hero from '@/components/portfolio/Hero';
 import ProjectRoadshow from '@/components/portfolio/ProjectRoadshow';
 import LearningReview from '@/components/portfolio/LearningReview';
 import OtherWorks from '@/components/portfolio/OtherWorks';
+import ChatBot from '@/components/chatbot/ChatBot';
 import PageMeta from '@/components/common/PageMeta';
 
 const PortfolioHome: React.FC = () => {
@@ -17,6 +18,7 @@ const PortfolioHome: React.FC = () => {
       <ProjectRoadshow />
       <LearningReview />
       <OtherWorks />
+      <ChatBot />
     </MainLayout>
   );
 };
