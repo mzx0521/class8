@@ -13,7 +13,7 @@ const Hero: React.FC = () => {
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
           <Badge variant="secondary" className="mb-6 px-4 py-1 flex items-center gap-2 animate-fade-in">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span>2026 课程毕业作品展示</span>
+            <span>第四期训练营作品展示</span>
           </Badge>
           
           <h1 className="text-4xl md:text-7xl font-bold tracking-tight mb-8 animate-fade-in">

@@ -10,8 +10,8 @@ const PortfolioHome: React.FC = () => {
   return (
     <MainLayout>
       <PageMeta 
-        title="作品展示 - 课程毕业名片" 
-        description="这是一个用于展示个人作品和学习成果的网页应用，作为课程毕业名片。"
+        title="作品展示 - 第四期训练营毕业名片" 
+        description="这是一个用于展示个人作品和学习成果的网页应用，作为第四期训练营毕业名片。"
       />
       <Hero />
       <ProjectRoadshow />

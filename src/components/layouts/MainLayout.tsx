@@ -30,7 +30,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold">
               M
             </div>
-            <span className="text-xl font-bold tracking-tight">毕业名片</span>
+            <span className="text-xl font-bold tracking-tight">训练营名片</span>
           </div>
 
           {/* Desktop Nav */}
@@ -100,7 +100,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <span className="font-bold">作品展示页面</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2026 作品展示页面. Built with AI & Passion.
+              © 2026 第四期训练营作品展示. Built with AI & Passion.
             </p>
           </div>
           <div className="flex gap-4">
