@@ -2,6 +2,7 @@ import React from 'react';
 import SectionTitle from './SectionTitle';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ASSETS_IMAGES } from '@/constants/images';
 import { 
   Lightbulb, 
   Target, 
@@ -60,7 +61,7 @@ const ProjectRoadshow: React.FC = () => {
             </div>
             <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl group">
               <img 
-                src="https://miaoda-site-img.cdn.bcebos.com/images/MiaoTu_37387e31-a25b-4e54-9414-e02d23c7614e.jpg" 
+                src={ASSETS_IMAGES.roadshow.painPoint} 
                 alt="会议痛点场景" 
                 className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
               />
@@ -175,9 +176,9 @@ const ProjectRoadshow: React.FC = () => {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { title: '安装与启动', desc: '安装插件，启动本地服务端', img: 'https://miaoda-site-img.cdn.bcebos.com/images/baidu_image_search_4897b66f-4f71-427b-90d8-126679569706.jpg' },
-              { title: '实时军师', desc: '给出建议（示例）：需求文档建议补充XX', img: 'https://miaoda-site-img.cdn.bcebos.com/images/baidu_image_search_bbb5f6d5-a6ac-4cdf-91f9-0ce7b9d23976.jpg' },
-              { title: '一键生成', desc: '下载纪要（示例）：标准的 Docx 格式', img: 'https://miaoda-site-img.cdn.bcebos.com/images/baidu_image_search_eb441be3-624b-4106-83c2-238ca6bba1b2.jpg' },
+              { title: '安装与启动', desc: '安装插件，启动本地服务端', img: ASSETS_IMAGES.roadshow.pluginInstall },
+              { title: '实时军师', desc: '给出建议（示例）：需求文档建议补充XX', img: ASSETS_IMAGES.roadshow.aiAdvice },
+              { title: '一键生成', desc: '下载纪要（示例）：标准的 Docx 格式', img: ASSETS_IMAGES.roadshow.downloadDocx },
             ].map((item, idx) => (
               <div key={idx} className="group cursor-pointer">
                 <div className="relative aspect-square rounded-2xl overflow-hidden mb-4 border bg-muted">

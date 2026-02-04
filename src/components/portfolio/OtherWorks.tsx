@@ -2,6 +2,7 @@ import React from 'react';
 import SectionTitle from './SectionTitle';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ASSETS_IMAGES } from '@/constants/images';
 import { ExternalLink, Github } from 'lucide-react';
 
 const OtherWorks: React.FC = () => {
@@ -10,21 +11,21 @@ const OtherWorks: React.FC = () => {
       title: '新春贺词生成器',
       desc: '随堂作业，支持生成个性化新春贺词并导出精美图片。',
       link: 'https://happy.madaochenggong.online/',
-      img: 'https://miaoda-site-img.cdn.bcebos.com/images/baidu_image_search_0278c817-c02b-4942-aae1-4ffffe13e3b9.jpg',
+      img: ASSETS_IMAGES.works.greetingCard,
       tags: ['React', 'Canvas', 'AI Content']
     },
     {
       title: '图片拼接线稿生成器',
       desc: '根据上传图片形成拼接效果，并调用大模型生成线稿，适配 Sora2 故事板。',
       link: 'https://picture.madaochenggong.online/auth',
-      img: 'https://miaoda-site-img.cdn.bcebos.com/images/baidu_image_search_390548ec-1adc-4865-b44a-78612d0b5288.jpg',
+      img: ASSETS_IMAGES.works.lineArt,
       tags: ['Sora2 Storyboard', 'Image Processing', 'ML']
     },
     {
       title: '需求提取 Skills',
       desc: '将散乱文字、会议录音智能提取为标准化需求文档，大幅提升分析效率。',
       link: 'https://github.com/mzx0521/prd-extractor',
-      img: 'https://miaoda-site-img.cdn.bcebos.com/images/baidu_image_search_eb441be3-624b-4106-83c2-238ca6bba1b2.jpg',
+      img: ASSETS_IMAGES.works.prdExtractor,
       github: 'https://github.com/mzx0521/prd-extractor',
       tags: ['AI Agent', 'PRD', 'LLM']
     },
@@ -32,7 +33,7 @@ const OtherWorks: React.FC = () => {
       title: '个人主页',
       desc: '综合展示个人信息、作品、工具与文章的对外门户。',
       link: 'https://hello.madaochenggong.online/',
-      img: 'https://miaoda-site-img.cdn.bcebos.com/images/baidu_image_search_9638df04-cdc9-47f5-9d29-d658a981ef22.jpg',
+      img: ASSETS_IMAGES.works.personalHome,
       tags: ['Personal Brand', 'Portal', 'FullStack']
     }
   ];
