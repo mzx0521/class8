@@ -13,53 +13,62 @@
 ### 1. 架构设计
 
 ```
-前端 (React) → Supabase Edge Function → 文心大模型 API
+前端 (React) → Supabase Edge Function → Coze AI API
 ```
 
 - **前端组件**：`src/components/chatbot/ChatBot.tsx`
 - **Edge Function**：`supabase/functions/chat/index.ts`
 - **流式处理**：`src/utils/stream.ts`
-- **System Prompt**：`src/constants/chatbot.ts`
+- **API 提供商**：Coze AI Assistant
 
 ### 2. 核心功能
 
-#### System Prompt（注入灵魂）
-在 `src/constants/chatbot.ts` 中定义了详细的 System Prompt，包含：
-- 项目背景（AI 会议军师）
-- 其他作品介绍
-- 学习心得和技能收获
-- 个人信息和联系方式
-- 语气风格设定（友好、专业、略带幽默）
+#### Coze AI 集成
+- **API 端点**：`https://hcrhmhftgn.coze.site/stream_run`
+- **认证方式**：Bearer Token（需要在环境变量中配置）
+- **项目 ID**：7603025396900184104
+- **会话管理**：自动生成和维护 session_id
 
 #### 多轮对话
-- 维护完整的对话历史（`conversationHistory`）
-- 每次请求都包含之前的所有对话记录
-- 支持上下文理解和连贯对话
+- 通过 session_id 维护对话上下文
+- 支持连续对话和上下文理解
+- 自动管理会话状态
 
 #### 流式响应
 - 使用 SSE (Server-Sent Events) 实现实时流式输出
 - 逐字显示 AI 回复，提升用户体验
 - 支持请求中断（AbortController）
 
-### 3. API 接入
+### 3. API 配置
 
-#### 文心大模型 API
-- **端点**：`https://app-9ejz1lg8hfcx-api-zYkZz8qovQ1L-gateway.appmiaoda.com/v2/chat/completions`
-- **认证**：通过 `INTEGRATIONS_API_KEY` 环境变量
-- **请求格式**：
+#### 环境变量设置
+
+**COZE_BEARER_TOKEN**（必需）
+- 描述：Coze AI 助手的 Bearer Token
+- 获取方式：在 Coze 平台获取您的 API Token
+- 配置位置：Supabase 项目的环境变量（Secrets）
+
+#### 请求格式
+
 ```json
 {
-  "messages": [
-    {"role": "system", "content": "System Prompt"},
-    {"role": "user", "content": "用户问题"},
-    {"role": "assistant", "content": "AI 回复"}
-  ],
-  "enable_thinking": false
+  "content": {
+    "query": {
+      "prompt": [
+        {
+          "type": "text",
+          "content": {
+            "text": "用户输入的消息"
+          }
+        }
+      ]
+    }
+  },
+  "type": "query",
+  "session_id": "自动生成的会话ID",
+  "project_id": 7603025396900184104
 }
 ```
-
-#### Edge Function 部署
-已自动部署到 Supabase，函数名：`chat`
 
 ### 4. 使用方式
 
@@ -70,30 +79,44 @@
 4. 实时查看 AI 的流式回复
 
 #### 开发者端
-如需修改 System Prompt：
-1. 编辑 `src/constants/chatbot.ts`
-2. 更新项目背景、个人信息等内容
-3. 调整语气风格和回答原则
+如需修改 API 配置：
+1. 编辑 `supabase/functions/chat/index.ts`
+2. 更新 project_id 或 API 端点
+3. 重新部署 Edge Function
+
+## 配置 COZE_BEARER_TOKEN
+
+### 步骤 1：获取 Token
+1. 访问 Coze 平台
+2. 登录您的账号
+3. 在项目设置或 API 管理中找到 Bearer Token
+4. 复制 Token 值
+
+### 步骤 2：配置到 Supabase
+1. 打开 Supabase 项目控制台
+2. 进入 Settings → Edge Functions → Secrets
+3. 添加新的 Secret：
+   - Name: `COZE_BEARER_TOKEN`
+   - Value: 粘贴您的 Token
+4. 保存配置
+
+### 步骤 3：验证配置
+1. 打开应用页面
+2. 点击右下角的 AI 助手按钮
+3. 发送一条测试消息
+4. 如果收到回复，说明配置成功
 
 ## 自定义配置
 
-### 修改 System Prompt
+### 修改项目 ID
 
-编辑 `src/constants/chatbot.ts`，可以自定义：
+如果您使用的是不同的 Coze 项目，需要修改 `supabase/functions/chat/index.ts`：
 
 ```typescript
-export const CHATBOT_SYSTEM_PROMPT = `
-你是一个专业且友好的 AI 助手...
-
-【项目背景】
-// 在这里添加你的项目介绍
-
-【个人信息】
-// 在这里添加你的个人信息
-
-【语气风格】
-// 在这里定义对话风格
-`;
+const cozeRequestBody = {
+  // ... 其他配置
+  project_id: 您的项目ID  // 修改这里
+};
 ```
 
 ### 调整 UI 样式
@@ -103,39 +126,49 @@ export const CHATBOT_SYSTEM_PROMPT = `
 - 修改浮动按钮位置：`bottom-6 right-6`
 - 修改主题色：使用 Tailwind 的 `primary` 等语义化颜色
 
-### 更换 AI 模型
+### 自定义响应解析
 
-如需使用其他 AI 模型：
-1. 修改 `supabase/functions/chat/index.ts` 中的 API 端点
-2. 调整请求格式以匹配新模型的要求
-3. 更新响应解析逻辑（`onData` 回调）
+如果 Coze API 返回的数据格式与预期不同，修改 `ChatBot.tsx` 中的 `onData` 回调：
+
+```typescript
+onData: (data) => {
+  try {
+    const parsed = JSON.parse(data);
+    // 根据实际返回格式提取内容
+    const chunk = parsed.你的字段名;
+    if (chunk) {
+      fullResponse += chunk;
+      setStreamingContent(fullResponse);
+    }
+  } catch (e) {
+    // 错误处理
+  }
+}
+```
 
 ## 常见问题
+
+### Q: 提示 "API Token 未配置" 怎么办？
+A: 请按照上述步骤在 Supabase 中配置 `COZE_BEARER_TOKEN` 环境变量。
 
 ### Q: 如何查看对话历史？
 A: 对话历史存储在组件的 `messages` 状态中，刷新页面后会清空。如需持久化，可以集成 Supabase 数据库。
 
-### Q: 如何限制对话轮数？
-A: 在 `handleSendMessage` 函数中添加判断：
+### Q: 如何实现会话持久化？
+A: 可以将 `sessionId` 存储到 localStorage：
 ```typescript
-if (messages.length > 20) {
-  // 提示用户对话轮数过多
-  return;
-}
+// 保存
+localStorage.setItem('chatSessionId', sessionId);
+// 读取
+const savedSessionId = localStorage.getItem('chatSessionId');
 ```
 
-### Q: 如何添加预设问题？
-A: 在欢迎消息下方添加快捷按钮：
-```typescript
-<div className="flex flex-wrap gap-2">
-  <Button size="sm" onClick={() => setInputValue("介绍一下核心项目")}>
-    核心项目
-  </Button>
-  <Button size="sm" onClick={() => setInputValue("有哪些作品？")}>
-    作品集
-  </Button>
-</div>
-```
+### Q: API 请求失败怎么办？
+A: 检查以下几点：
+1. COZE_BEARER_TOKEN 是否正确配置
+2. project_id 是否正确
+3. 网络连接是否正常
+4. 查看浏览器控制台的错误信息
 
 ## 效果验证
 
@@ -179,7 +212,7 @@ A: 在欢迎消息下方添加快捷按钮：
 项目已配置好所有必要的环境：
 - ✅ Supabase 项目已初始化
 - ✅ Edge Function 已部署
-- ✅ API 密钥已配置
 - ✅ 前端组件已集成
+- ⚠️ 需要手动配置 COZE_BEARER_TOKEN
 
-直接部署到 Vercel 即可使用！
+配置完成后，直接部署到 Vercel 即可使用！

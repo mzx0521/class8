@@ -1,19 +1,18 @@
-// 文心大模型 API 的 CORS 头
+// Coze AI API 的 CORS 头
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// 定义消息接口
-interface Message {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
+// 定义请求体接口
+interface CozeRequest {
+  userMessage: string;
+  sessionId?: string;
 }
 
-// 定义请求体接口
-interface ChatRequest {
-  messages: Message[];
-  enable_thinking?: boolean;
+// 生成随机 session_id
+function generateSessionId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
 Deno.serve(async (req) => {
@@ -24,10 +23,10 @@ Deno.serve(async (req) => {
 
   try {
     // 解析请求体
-    const { messages }: ChatRequest = await req.json();
+    const { userMessage, sessionId }: CozeRequest = await req.json();
 
     // 验证消息格式
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!userMessage || typeof userMessage !== 'string') {
       return new Response(
         JSON.stringify({ error: '消息格式错误' }),
         { 
@@ -37,12 +36,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 获取 API 密钥
-    const apiKey = Deno.env.get('INTEGRATIONS_API_KEY');
-    if (!apiKey) {
-      console.error('INTEGRATIONS_API_KEY 未配置');
+    // 获取 Bearer Token
+    const bearerToken = Deno.env.get('COZE_BEARER_TOKEN');
+    if (!bearerToken) {
+      console.error('COZE_BEARER_TOKEN 未配置');
       return new Response(
-        JSON.stringify({ error: 'API 密钥未配置' }),
+        JSON.stringify({ error: 'API Token 未配置，请在环境变量中设置 COZE_BEARER_TOKEN' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -50,27 +49,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 调用文心大模型 API
-    const apiUrl = 'https://app-9ejz1lg8hfcx-api-zYkZz8qovQ1L-gateway.appmiaoda.com/v2/chat/completions';
+    // 使用传入的 sessionId 或生成新的
+    const finalSessionId = sessionId || generateSessionId();
+
+    // 构建 Coze API 请求体
+    const cozeRequestBody = {
+      content: {
+        query: {
+          prompt: [
+            {
+              type: "text",
+              content: {
+                text: userMessage
+              }
+            }
+          ]
+        }
+      },
+      type: "query",
+      session_id: finalSessionId,
+      project_id: 7603025396900184104
+    };
+
+    // 调用 Coze AI API
+    const apiUrl = 'https://hcrhmhftgn.coze.site/stream_run';
     
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${bearerToken}`,
         'Content-Type': 'application/json',
-        'X-Gateway-Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        messages,
-        enable_thinking: false,
-      }),
+      body: JSON.stringify(cozeRequestBody),
     });
 
     // 检查响应状态
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('API 请求失败:', response.status, errorText);
+      console.error('Coze API 请求失败:', response.status, errorText);
       return new Response(
-        JSON.stringify({ error: `API 请求失败: ${response.status}` }),
+        JSON.stringify({ 
+          error: `API 请求失败: ${response.status}`,
+          details: errorText
+        }),
         { 
           status: response.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -85,6 +106,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-Session-Id': finalSessionId, // 返回 session_id 供前端使用
       },
     });
 

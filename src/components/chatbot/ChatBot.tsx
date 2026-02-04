@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { sendStreamRequest } from '@/utils/stream';
-import { CHATBOT_SYSTEM_PROMPT } from '@/constants/chatbot';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -19,6 +18,7 @@ const ChatBot: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [sessionId, setSessionId] = useState<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -51,12 +51,6 @@ const ChatBot: React.FC = () => {
     setIsLoading(true);
     setStreamingContent('');
 
-    // 准备请求消息（包含 system prompt）
-    const requestMessages = [
-      { role: 'system', content: CHATBOT_SYSTEM_PROMPT },
-      ...newMessages.map(msg => ({ role: msg.role, content: msg.content }))
-    ];
-
     // 创建 AbortController
     abortControllerRef.current = new AbortController();
 
@@ -65,27 +59,56 @@ const ChatBot: React.FC = () => {
 
       await sendStreamRequest({
         functionUrl: `${supabaseUrl}/functions/v1/chat`,
-        requestBody: { messages: requestMessages },
+        requestBody: { 
+          userMessage,
+          sessionId: sessionId || undefined
+        },
         supabaseAnonKey,
         onData: (data) => {
           try {
+            // Coze API 可能返回不同格式，需要根据实际情况调整
             const parsed = JSON.parse(data);
-            // 根据文心 API 返回格式提取内容
-            const chunk = parsed.choices?.[0]?.delta?.content || '';
+            
+            // 尝试多种可能的响应格式
+            let chunk = '';
+            if (parsed.content) {
+              chunk = parsed.content;
+            } else if (parsed.text) {
+              chunk = parsed.text;
+            } else if (parsed.delta) {
+              chunk = parsed.delta;
+            } else if (parsed.message) {
+              chunk = parsed.message;
+            } else if (typeof parsed === 'string') {
+              chunk = parsed;
+            }
+            
             if (chunk) {
               fullResponse += chunk;
               setStreamingContent(fullResponse);
             }
           } catch (e) {
-            console.warn('解析数据失败:', e);
+            // 如果不是 JSON，直接作为文本处理
+            if (typeof data === 'string' && data.trim()) {
+              fullResponse += data;
+              setStreamingContent(fullResponse);
+            }
           }
         },
         onComplete: () => {
           // 将完整的 AI 回复添加到消息历史
-          setMessages([
-            ...newMessages,
-            { role: 'assistant', content: fullResponse }
-          ]);
+          if (fullResponse) {
+            setMessages([
+              ...newMessages,
+              { role: 'assistant', content: fullResponse }
+            ]);
+          } else {
+            // 如果没有收到内容，显示默认消息
+            setMessages([
+              ...newMessages,
+              { role: 'assistant', content: '收到了您的消息，但暂时没有回复内容 😊' }
+            ]);
+          }
           setStreamingContent('');
           setIsLoading(false);
         },
@@ -93,7 +116,7 @@ const ChatBot: React.FC = () => {
           console.error('请求失败:', error);
           setMessages([
             ...newMessages,
-            { role: 'assistant', content: '抱歉，我遇到了一些问题，请稍后再试 😅' }
+            { role: 'assistant', content: '抱歉，我遇到了一些问题，请稍后再试 😅\n\n提示：请确保已在环境变量中配置 COZE_BEARER_TOKEN' }
           ]);
           setStreamingContent('');
           setIsLoading(false);
