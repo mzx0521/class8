@@ -54,8 +54,13 @@ const ChatBot: React.FC = () => {
     // 创建 AbortController
     abortControllerRef.current = new AbortController();
 
+    console.log('🚀 开始发送消息到 Edge Function');
+    console.log('📨 用户消息:', userMessage);
+    console.log('🔗 Session ID:', sessionId || '(将自动生成)');
+
     try {
       let fullResponse = '';
+      let hasReceivedData = false;
 
       await sendStreamRequest({
         functionUrl: `${supabaseUrl}/functions/v1/chat`,
@@ -65,9 +70,13 @@ const ChatBot: React.FC = () => {
         },
         supabaseAnonKey,
         onData: (data) => {
+          hasReceivedData = true;
+          console.log('📥 收到数据块:', data.substring(0, 100));
+          
           try {
             // Coze API 可能返回不同格式，需要根据实际情况调整
             const parsed = JSON.parse(data);
+            console.log('📦 解析后的数据:', parsed);
             
             // 尝试多种可能的响应格式
             let chunk = '';
@@ -79,6 +88,8 @@ const ChatBot: React.FC = () => {
               chunk = parsed.delta;
             } else if (parsed.message) {
               chunk = parsed.message;
+            } else if (parsed.choices?.[0]?.delta?.content) {
+              chunk = parsed.choices[0].delta.content;
             } else if (typeof parsed === 'string') {
               chunk = parsed;
             }
@@ -89,6 +100,7 @@ const ChatBot: React.FC = () => {
             }
           } catch (e) {
             // 如果不是 JSON，直接作为文本处理
+            console.log('⚠️ 非 JSON 数据，直接作为文本处理');
             if (typeof data === 'string' && data.trim()) {
               fullResponse += data;
               setStreamingContent(fullResponse);
@@ -96,6 +108,10 @@ const ChatBot: React.FC = () => {
           }
         },
         onComplete: () => {
+          console.log('✅ 请求完成');
+          console.log('📝 完整响应长度:', fullResponse.length);
+          console.log('📊 是否收到数据:', hasReceivedData);
+          
           // 将完整的 AI 回复添加到消息历史
           if (fullResponse) {
             setMessages([
@@ -104,19 +120,37 @@ const ChatBot: React.FC = () => {
             ]);
           } else {
             // 如果没有收到内容，显示默认消息
+            console.warn('⚠️ 未收到任何响应内容');
             setMessages([
               ...newMessages,
-              { role: 'assistant', content: '收到了您的消息，但暂时没有回复内容 😊' }
+              { role: 'assistant', content: '收到了您的消息，但暂时没有回复内容 😊\n\n请检查：\n1. COZE_BEARER_TOKEN 是否正确配置\n2. Coze 项目 ID 是否正确\n3. 查看浏览器控制台的详细日志' }
             ]);
           }
           setStreamingContent('');
           setIsLoading(false);
         },
         onError: (error) => {
-          console.error('请求失败:', error);
+          console.error('❌ 请求失败:', error);
+          console.error('错误详情:', error.message);
+          
+          let errorMessage = '抱歉，我遇到了一些问题，请稍后再试 😅\n\n';
+          
+          // 根据错误类型提供更具体的提示
+          if (error.message.includes('Token')) {
+            errorMessage += '提示：请确保已在 Supabase Secrets 中正确配置 COZE_BEARER_TOKEN';
+          } else if (error.message.includes('401')) {
+            errorMessage += '提示：Token 认证失败，请检查 COZE_BEARER_TOKEN 是否正确';
+          } else if (error.message.includes('404')) {
+            errorMessage += '提示：API 端点未找到，请检查 Coze 项目配置';
+          } else if (error.message.includes('500')) {
+            errorMessage += '提示：服务器错误，请查看 Edge Function 日志';
+          } else {
+            errorMessage += `错误信息：${error.message}`;
+          }
+          
           setMessages([
             ...newMessages,
-            { role: 'assistant', content: '抱歉，我遇到了一些问题，请稍后再试 😅\n\n提示：请确保已在环境变量中配置 COZE_BEARER_TOKEN' }
+            { role: 'assistant', content: errorMessage }
           ]);
           setStreamingContent('');
           setIsLoading(false);
@@ -124,7 +158,7 @@ const ChatBot: React.FC = () => {
         signal: abortControllerRef.current.signal
       });
     } catch (error) {
-      console.error('发送消息失败:', error);
+      console.error('💥 发送消息失败:', error);
       setIsLoading(false);
     }
   };

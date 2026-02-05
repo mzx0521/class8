@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coze API 测试页面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+    }
+    
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: monospace;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      display: none;
+    }
+    
+    .result.show {
+      display: block;
+    }
+    
+    .result h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+    
+    .result pre {
+      background: #fff;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .status.loading {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+    
+    .hint {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Coze API 测试工具</h1>
+    <p class="subtitle">用于验证 Coze AI API 配置是否正确</p>
+    
+    <div class="hint">
+      💡 <strong>提示：</strong>请从 Coze 平台获取您的 Bearer Token（pat_ 开头），然后在下方测试。
+    </div>
+    
+    <div class="form-group">
+      <label for="token">Bearer Token *</label>
+      <input 
+        type="text" 
+        id="token" 
+        placeholder="pat_xxxxxxxxxxxxxxxxxx"
+        value=""
+      >
+    </div>
+    
+    <div class="form-group">
+      <label for="message">测试消息</label>
+      <input 
+        type="text" 
+        id="message" 
+        placeholder="你好，能介绍一下这个项目吗？"
+        value="你好，能介绍一下这个项目吗？"
+      >
+    </div>
+    
+    <div class="form-group">
+      <label for="projectId">Project ID</label>
+      <input 
+        type="text" 
+        id="projectId" 
+        value="7603025396900184104"
+        readonly
+      >
+    </div>
+    
+    <button onclick="testAPI()" id="testBtn">🚀 开始测试</button>
+    
+    <div class="result" id="result">
+      <h3>测试结果</h3>
+      <div id="status"></div>
+      <pre id="output"></pre>
+    </div>
+  </div>
+  
+  <script>
+    async function testAPI() {
+      const token = document.getElementById('token').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const projectId = document.getElementById('projectId').value.trim();
+      const resultDiv = document.getElementById('result');
+      const statusDiv = document.getElementById('status');
+      const outputPre = document.getElementById('output');
+      const testBtn = document.getElementById('testBtn');
+      
+      // 验证输入
+      if (!token) {
+        alert('请输入 Bearer Token');
+        return;
+      }
+      
+      if (!message) {
+        alert('请输入测试消息');
+        return;
+      }
+      
+      // 显示加载状态
+      resultDiv.classList.add('show');
+      statusDiv.innerHTML = '<span class="status loading">⏳ 正在测试...</span>';
+      outputPre.textContent = '正在发送请求到 Coze API...\n';
+      testBtn.disabled = true;
+      
+      // 生成 session_id
+      const sessionId = 'test_' + Math.random().toString(36).substring(2, 15);
+      
+      // 构建请求体
+      const requestBody = {
+        content: {
+          query: {
+            prompt: [
+              {
+                type: "text",
+                content: {
+                  text: message
+                }
+              }
+            ]
+          }
+        },
+        type: "query",
+        session_id: sessionId,
+        project_id: parseInt(projectId)
+      };
+      
+      outputPre.textContent += '\n📤 请求配置:\n';
+      outputPre.textContent += `  API: https://hcrhmhftgn.coze.site/stream_run\n`;
+      outputPre.textContent += `  Token: ${token.substring(0, 10)}...\n`;
+      outputPre.textContent += `  Session ID: ${sessionId}\n`;
+      outputPre.textContent += `  Project ID: ${projectId}\n`;
+      outputPre.textContent += `  Message: ${message}\n\n`;
+      
+      try {
+        const response = await fetch('https://hcrhmhftgn.coze.site/stream_run', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody)
+        });
+        
+        outputPre.textContent += `📊 响应状态: ${response.status} ${response.statusText}\n\n`;
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          statusDiv.innerHTML = '<span class="status error">❌ 请求失败</span>';
+          outputPre.textContent += '❌ 错误信息:\n' + errorText;
+          testBtn.disabled = false;
+          return;
+        }
+        
+        statusDiv.innerHTML = '<span class="status success">✅ 连接成功</span>';
+        outputPre.textContent += '✅ 开始接收流式响应:\n';
+        outputPre.textContent += '─'.repeat(60) + '\n';
+        
+        // 读取流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullResponse = '';
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          fullResponse += chunk;
+          outputPre.textContent += chunk;
+          outputPre.scrollTop = outputPre.scrollHeight;
+        }
+        
+        outputPre.textContent += '\n' + '─'.repeat(60) + '\n';
+        outputPre.textContent += `\n✅ 测试完成！总共接收 ${fullResponse.length} 字符\n`;
+        
+      } catch (error) {
+        statusDiv.innerHTML = '<span class="status error">❌ 请求失败</span>';
+        outputPre.textContent += '\n❌ 错误:\n' + error.message;
+      } finally {
+        testBtn.disabled = false;
+      }
+    }
+    
+    // 支持回车键提交
+    document.getElementById('message').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        testAPI();
+      }
+    });
+  </script>
+</body>
+</html>
