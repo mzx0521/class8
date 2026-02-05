@@ -1,3 +1,7 @@
+# 欢迎使用你的秒哒应用代码包
+秒哒应用链接
+    URL:https://www.miaoda.cn/projects/app-9ejz1lg8hfcx
+
 # 图片资源文件夹
 
 此文件夹用于存放作品展示页面的所有图片资源。
